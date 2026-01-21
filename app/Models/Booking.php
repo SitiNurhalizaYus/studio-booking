@@ -8,12 +8,14 @@ class Booking extends Model
 {
     protected $fillable = [
         'customer_id',
+        'service_id', 
         'booking_date',
         'start_time',
         'end_time',
         'package',
         'payment_status'
     ];
+
 
     public function customer()
     {
