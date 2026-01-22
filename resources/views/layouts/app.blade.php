@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
@@ -14,23 +18,52 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+    <body class="font-sans bg-cream text-espresso">
+        <div class="flex min-h-screen">
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+            <!-- SIDEBAR -->
+            <aside class="w-64 bg-taupe px-6 py-8">
+                <div class="mb-10">
+                    <h1 class="text-xl font-semibold">Studio Foto</h1>
+                    <p class="text-sm text-gray-600">Booking System</p>
+                </div>
 
-            <!-- Page Content -->
-            <main>
+                <nav class="space-y-2">
+                    <a href="#" class="block px-4 py-2 rounded-lg bg-white font-medium">
+                        Dashboard
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/60">
+                        Booking
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/60">
+                        Kalender
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/60">
+                        Pelanggan
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/60">
+                        Pembayaran
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}" class="mt-10">
+                <!-- LOGOUT -->
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="w-full px-4 py-2 rounded-lg bg-white/70 hover:bg-white font-medium"
+                        >
+                            Keluar
+                        </button>
+                    </form>
+                </nav>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 p-8">
                 {{ $slot }}
             </main>
+
         </div>
     </body>
+
 </html>
