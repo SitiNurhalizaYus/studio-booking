@@ -13,7 +13,8 @@ class Booking extends Model
         'start_time',
         'end_time',
         'package',
-        'payment_status'
+        'status',
+        'notes',
     ];
 
     public function customer()
@@ -30,7 +31,4 @@ class Booking extends Model
     {
         return $this->hasOne(Payment::class);
     }
-
-
 }
-

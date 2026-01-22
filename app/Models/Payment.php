@@ -18,5 +18,20 @@ class Payment extends Model
     {
         return $this->belongsTo(Booking::class);
     }
-}
 
+    protected static function booted()
+    {
+        static::saved(function ($payment) {
+
+            if ($payment->status === 'paid') {
+                $booking = $payment->booking;
+
+                if ($booking && $booking->status === 'pending') {
+                    $booking->update([
+                        'status' => 'confirmed'
+                    ]);
+                }
+            }
+        });
+    }
+}
