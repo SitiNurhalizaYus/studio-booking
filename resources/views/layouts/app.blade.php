@@ -50,16 +50,16 @@
                     <span>Booking</span>
                 </a>
 
-                <a href="{{ route('calendar.index') }}"
+                {{-- <a href="{{ route('calendar.index') }}"
                     class="flex items-center gap-3 px-4 py-2 rounded-lg
                     {{ request()->routeIs('calendar.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-clock class="w-5 h-5" />
                     <span>Kalender</span>
                 </a>
 
-                <a href="{{ route('customers.index') }}"
+                <a href="{{ route('services.index') }}"
                     class="flex items-center gap-3 px-4 py-2 rounded-lg
-                    {{ request()->routeIs('customers.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
+                    {{ request()->routeIs('services.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-users class="w-5 h-5" />
                     <span>Pelanggan</span>
                 </a>
@@ -69,7 +69,7 @@
                     {{ request()->routeIs('payments.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-credit-card class="w-5 h-5" />
                     <span>Pembayaran</span>
-                </a>
+                </a> --}}
 
             </nav>
 
@@ -104,7 +104,8 @@
         <!-- MAIN CONTENT -->
         <main class="flex-1 p-8 overflow-y-auto">
 
-            {{ $slot }}
+           @yield('content')
+
         </main>
 
     </div>

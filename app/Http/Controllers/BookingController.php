@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Customer;
-use Illuminate\Http\Request;
+use App\Models\Service;
 
 
 class BookingController extends Controller
@@ -18,7 +19,6 @@ class BookingController extends Controller
             'booking_date' => 'required|date',
             'start_time'   => 'required',
             'end_time'     => 'required|after:start_time',
-            'package'      => 'required',
         ]);
 
         // Simpan / ambil customer
@@ -28,7 +28,7 @@ class BookingController extends Controller
             'email' => $request->email,
         ]);
 
-        // 🔥 CEK DOUBLE BOOKING
+        //CEK DOUBLE BOOKING
         $conflict = Booking::where('booking_date', $request->booking_date)
             ->where(function ($query) use ($request) {
                 $query->where('start_time', '<', $request->end_time)
@@ -44,14 +44,16 @@ class BookingController extends Controller
 
         // simpan booking ke variabel
         $booking = Booking::create([
-            'customer_id'    => $customer->id,
-            'service_id'     => $request->service_id,
-            'booking_date'   => $request->booking_date,
-            'start_time'     => $request->start_time,
-            'end_time'       => $request->end_time,
-            'package'        => $request->package,
-            'status' => 'pending',
+            'customer_id'  => $customer->id,
+            'service_id'   => $request->service_id,
+            'booking_date' => $request->booking_date,
+            'start_time'   => $request->start_time,
+            'end_time'     => $request->end_time,
+            'notes'        => $request->note,
+            'status'       => 'pending',
         ]);
+
+
 
         // auto payment (DP system ready)
         Payment::create([
@@ -62,11 +64,9 @@ class BookingController extends Controller
             'status'           => 'pending',
         ]);
 
-        // return redirect()->back()->with('success', 'Booking berhasil disimpan.');
-        return response()->json([
-            'message' => 'Booking & payment created',
-            'booking_id' => $booking->id
-        ]);
+        return redirect()
+            ->route('bookings.index')
+            ->with('success', 'Booking berhasil ditambahkan');
     }
     public function index()
     {
@@ -146,5 +146,86 @@ class BookingController extends Controller
     {
         $booking->load(['customer', 'service', 'payment']);
         return view('bookings.invoice', compact('booking'));
+    }
+
+    public function create()
+    {
+        $services = Service::all(); //  TANPA is_active
+        $customers = Customer::orderBy('name')->get();
+
+        return view('bookings.create', compact('services', 'customers'));
+    }
+    public function availableSlots(Request $request)
+    {
+        $request->validate([
+            'booking_date' => 'required|date',
+            'service_id' => 'required'
+        ]);
+
+
+        $service = Service::findOrFail($request->service_id);
+        $day = date('N', strtotime($request->booking_date)); // 1 = Senin, 7 = Minggu
+
+        if (str_contains($service->name, 'Produk') && $day > 5) {
+            return response()->json([]);
+        }
+
+        $duration = $service->duration; // dalam jam
+
+        $studioHours = [
+            '09:00',
+            '10:00',
+            '11:00',
+            '13:00',
+            '14:00',
+            '15:00',
+            '16:00'
+        ];
+
+        $bookings = Booking::where('booking_date', $request->booking_date)->get();
+
+        $available = [];
+
+        foreach ($studioHours as $start) {
+            $startTime = strtotime($start);
+            $endTime = strtotime("+{$duration} hour", $startTime);
+
+            $conflict = false;
+
+            foreach ($bookings as $booking) {
+                $bookedStart = strtotime($booking->start_time);
+                $bookedEnd   = strtotime($booking->end_time);
+
+                if ($startTime < $bookedEnd && $endTime > $bookedStart) {
+                    $conflict = true;
+                    break;
+                }
+            }
+
+            if (!$conflict) {
+                $available[] = [
+                    'start' => date('H:i', $startTime),
+                    'end'   => date('H:i', $endTime),
+                ];
+            }
+        }
+
+        return response()->json($available);
+    }
+    public function fullDates(Request $request)
+    {
+        $service = Service::findOrFail($request->service_id);
+        $duration = $service->duration;
+
+        $dates = Booking::select('booking_date')
+            ->groupBy('booking_date')
+            ->get()
+            ->filter(function ($row) use ($duration) {
+                $totalBooked = Booking::where('booking_date', $row->booking_date)->count();
+                return $totalBooked >= 7; // 7 slot studio per hari
+            })
+            ->pluck('booking_date');
+
+        return response()->json($dates);
     }
 }

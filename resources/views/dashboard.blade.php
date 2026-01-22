@@ -1,4 +1,6 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('content')
     <div class="bg-cream min-h-screen p-8">
         <div class="max-w-7xl mx-auto">
 
@@ -70,4 +72,4 @@
 
         </div>
     </div>
-</x-app-layout>
+@endsection

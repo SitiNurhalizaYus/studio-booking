@@ -1,4 +1,7 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('content')
+<div class="space-y-10">
 
     {{-- JUDUL HALAMAN --}}
     <div class="flex items-center justify-between mb-6">
@@ -37,4 +40,4 @@
 </div>
 
 
-</x-app-layout>
+@endsection

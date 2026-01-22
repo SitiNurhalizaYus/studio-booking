@@ -1,4 +1,6 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('content')
     <!-- HEADER -->
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -174,4 +176,4 @@
         </div>
 
     </div>
-</x-app-layout>
+@endsection
