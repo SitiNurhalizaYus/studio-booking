@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Customer;
 use Illuminate\Http\Request;
+
 
 class BookingController extends Controller
 {
@@ -40,16 +42,31 @@ class BookingController extends Controller
             ]);
         }
 
-        // Simpan booking
-        Booking::create([
-            'customer_id'   => $customer->id,
-            'booking_date'  => $request->booking_date,
-            'start_time'    => $request->start_time,
-            'end_time'      => $request->end_time,
-            'package'       => $request->package,
-            'payment_status'=> 'pending'
+        // simpan booking ke variabel
+        $booking = Booking::create([
+            'customer_id'    => $customer->id,
+            'service_id'     => $request->service_id,
+            'booking_date'   => $request->booking_date,
+            'start_time'     => $request->start_time,
+            'end_time'       => $request->end_time,
+            'package'        => $request->package,
+            'payment_status' => 'pending',
         ]);
 
-        return redirect()->back()->with('success', 'Booking berhasil disimpan.');
+        // auto payment (DP system ready)
+        Payment::create([
+            'booking_id'       => $booking->id,
+            'total_amount'     => $booking->service->price,
+            'paid_amount'      => 0,
+            'remaining_amount' => $booking->service->price,
+            'status'           => 'pending',
+        ]);
+
+        // return redirect()->back()->with('success', 'Booking berhasil disimpan.');
+        return response()->json([
+            'message' => 'Booking & payment created',
+            'booking_id' => $booking->id
+        ]);
+
     }
 }

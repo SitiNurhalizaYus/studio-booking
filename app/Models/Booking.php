@@ -8,14 +8,13 @@ class Booking extends Model
 {
     protected $fillable = [
         'customer_id',
-        'service_id', 
+        'service_id',
         'booking_date',
         'start_time',
         'end_time',
         'package',
         'payment_status'
     ];
-
 
     public function customer()
     {
@@ -26,6 +25,12 @@ class Booking extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
 
 }
 
