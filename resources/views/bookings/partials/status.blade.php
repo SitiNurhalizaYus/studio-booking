@@ -9,7 +9,7 @@
     ];
 @endphp
 
-<span
+<span 
     class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition
     {{ $statusMap[$status] ?? 'bg-gray-100 text-gray-700' }}">
     {{ ucfirst($status) }}

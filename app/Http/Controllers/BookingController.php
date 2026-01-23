@@ -159,18 +159,12 @@ class BookingController extends Controller
     {
         $request->validate([
             'booking_date' => 'required|date',
-            'service_id' => 'required'
+            'service_id' => 'required',
+            'booking_id' => 'nullable'
         ]);
 
-
         $service = Service::findOrFail($request->service_id);
-        $day = date('N', strtotime($request->booking_date)); // 1 = Senin, 7 = Minggu
-
-        if (str_contains($service->name, 'Produk') && $day > 5) {
-            return response()->json([]);
-        }
-
-        $duration = $service->duration; // dalam jam
+        $duration = $service->duration;
 
         $studioHours = [
             '09:00',
@@ -182,7 +176,11 @@ class BookingController extends Controller
             '16:00'
         ];
 
-        $bookings = Booking::where('booking_date', $request->booking_date)->get();
+        $bookings = Booking::where('booking_date', $request->booking_date)
+            ->when($request->booking_id, function ($q) use ($request) {
+                $q->where('id', '!=', $request->booking_id);
+            })
+            ->get();
 
         $available = [];
 
@@ -212,6 +210,7 @@ class BookingController extends Controller
 
         return response()->json($available);
     }
+
     public function fullDates(Request $request)
     {
         $service = Service::findOrFail($request->service_id);
@@ -227,5 +226,82 @@ class BookingController extends Controller
             ->pluck('booking_date');
 
         return response()->json($dates);
+    }
+    public function edit(Booking $booking)
+    {
+        $services = Service::all();
+
+        return view('bookings.update', compact('booking', 'services'));
+    }
+
+    public function update(Request $request, Booking $booking)
+    {
+        if (in_array($booking->status, ['completed', 'cancelled'])) {
+            return back()->withErrors([
+                'status' => 'Booking sudah selesai / dibatalkan dan tidak dapat diubah.'
+            ]);
+        }
+        $conflict = Booking::where('booking_date', $request->booking_date)
+            ->where('id', '!=', $booking->id) // ⬅️ PENTING: exclude dirinya sendiri
+            ->where(function ($query) use ($request) {
+                $query->where('start_time', '<', $request->end_time)
+                    ->where('end_time', '>', $request->start_time);
+            })
+            ->exists();
+
+        if ($conflict) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'booking_time' =>
+                    "Jadwal bentrok pada tanggal {$request->booking_date} pukul {$request->start_time} – {$request->end_time}. Silakan pilih jam lain."
+                ]);
+        }
+
+
+        $request->validate([
+            'name' => 'required',
+            'phone' => 'required',
+            'service_id' => 'required',
+            'booking_date' => 'required|date',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+        ]);
+
+        $booking->customer->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
+
+        $booking->update([
+            'service_id' => $request->service_id,
+            'booking_date' => $request->booking_date,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'notes' => $request->notes,
+        ]);
+
+        return redirect()->route('bookings.index')
+            ->with('success', 'Booking berhasil diperbarui');
+    }
+    public function destroy(Booking $booking)
+    {
+        // optional: hanya boleh hapus kalau belum completed
+        if ($booking->status === 'completed') {
+            return back()->withErrors([
+                'delete' => 'Booking yang sudah selesai tidak dapat dihapus.'
+            ]);
+        }
+
+        // hapus payment dulu (jika relasi belum cascade)
+        if ($booking->payment) {
+            $booking->payment->delete();
+        }
+
+        $booking->delete();
+
+        return redirect()
+            ->route('bookings.index')
+            ->with('success', 'Booking berhasil dihapus.');
     }
 }

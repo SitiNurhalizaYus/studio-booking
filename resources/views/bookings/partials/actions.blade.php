@@ -1,36 +1,47 @@
-<div class="flex justify-end gap-2">
+<div class="flex items-center gap-2">
 
     {{-- DETAIL --}}
-    <a href="{{ route('bookings.show', $booking->id) }}"
-        class="p-2 rounded-md bg-gray-100 hover:bg-gray-200">
+    <a href="{{ route('bookings.show', $booking) }}"
+       class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+              bg-blue-50 text-blue-600 hover:bg-blue-100"
+       title="Detail">
         <x-heroicon-o-eye class="w-4 h-4" />
     </a>
 
-    {{-- JIKA BOOKING SELESAI → PRINT STRUK --}}
-    @if ($booking->status === 'completed')
-        <a href="{{ route('bookings.invoice', $booking->id) }}"
-            target="_blank"
-            class="p-2 rounded-md bg-blue-100 hover:bg-blue-200">
-            <x-heroicon-o-printer class="w-4 h-4" />
-        </a>
-
-    {{-- JIKA BELUM SELESAI → EDIT & DELETE --}}
-    @else
+@if (!in_array($booking->status, ['completed', 'cancelled']))
+    {{-- EDIT (HANYA JIKA BELUM SELESAI) --}}
         <a href="{{ route('bookings.edit', $booking->id) }}"
-            class="p-2 rounded-md bg-yellow-100 hover:bg-yellow-200">
-            <x-heroicon-o-pencil class="w-4 h-4" />
+           class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                  bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+           title="Edit Booking">
+            <x-heroicon-o-pencil-square class="w-4 h-4" />
         </a>
 
-        <form method="POST"
-            action="{{ route('bookings.destroy', $booking->id) }}"
-            onsubmit="return confirm('Yakin hapus booking ini?')">
-            @csrf
-            @method('DELETE')
-            <button
-                class="p-2 rounded-md bg-red-100 hover:bg-red-200">
-                <x-heroicon-o-trash class="w-4 h-4" />
-            </button>
-        </form>
-    @endif
+
+    {{-- DELETE (OPSIONAL, JIKA KAMU PAKAI) --}}
+        <form action="{{ route('bookings.destroy', $booking->id) }}"
+      method="POST"
+      onsubmit="return confirmDelete()">
+    @csrf
+    @method('DELETE')
+
+    <button type="submit"
+        class="inline-flex items-center justify-center
+               w-9 h-9 rounded-lg
+               bg-red-100 text-red-600
+               hover:bg-red-200"
+        title="Hapus Booking">
+        🗑
+    </button>
+</form><script>
+function confirmDelete() {
+    return confirm(
+        'Yakin ingin menghapus booking ini?\n\nData booking dan pembayaran akan dihapus dan tidak bisa dikembalikan.'
+    );
+}
+</script>
+
+
+@endif
 
 </div>

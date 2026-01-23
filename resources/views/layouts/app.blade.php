@@ -102,10 +102,10 @@
         </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="flex-1 p-8 overflow-y-auto">
-
-           @yield('content')
-
+         <main class="flex-1 min-h-screen overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-6 py-6">
+                @yield('content')
+            </div>
         </main>
 
     </div>
