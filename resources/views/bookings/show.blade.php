@@ -7,9 +7,9 @@
             <h1 class="text-2xl font-semibold text-gray-800">
                 Detail Booking
             </h1>
-            <p class="text-sm text-gray-500">
+            {{-- <p class="text-sm text-gray-500">
                 Booking atas nama {{ $booking->customer->name ?? '-' }}
-            </p>
+            </p> --}}
 
             {{-- META TIME --}}
             <div class="mt-2 text-[11px] text-gray-400 space-x-2">
@@ -20,12 +20,13 @@
         </div>
 
         <div class="flex items-center gap-2">
-           <a href="{{ url()->previous() }}"
+            <a href="{{ session('back_url', route('bookings.index')) }}"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                  bg-white hover:bg-gray-100 text-sm font-medium">
+          bg-white hover:bg-gray-100 text-sm font-medium">
                 <x-heroicon-o-arrow-left class="w-4 h-4" />
                 Kembali
             </a>
+
             @if (!in_array($booking->status, ['completed', 'cancelled']))
                 <a href="{{ route('bookings.edit', $booking->id) }}"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
@@ -36,7 +37,7 @@
                 </a>
             @endif
 
-            
+
         </div>
     </div>
 
@@ -81,8 +82,8 @@
                                 @method('PATCH')
 
                                 <button
-                                    class="px-4 py-2 bg-green-600 text-white rounded-lg
-                           hover:bg-green-700 transition">
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg
+                           hover:bg-blue-700 transition">
                                     Tandai Selesai
                                 </button>
                             </form>
@@ -111,32 +112,23 @@
 
                         $statusMap = [
                             'pending' => 'bg-yellow-100 text-yellow-700',
+                            'waiting_payment' => 'bg-orange-100 text-orange-700',       
                             'confirmed' => 'bg-green-100 text-green-700',
                             'completed' => 'bg-blue-100 text-blue-700',
                             'cancelled' => 'bg-red-100 text-red-700',
                         ];
                     @endphp
 
-
                     <span
                         class="inline-flex px-3 py-1 rounded-full text-xs font-medium
     {{ $statusMap[$status] ?? 'bg-gray-100 text-gray-600' }}">
-                        {{ ucfirst($status) }}
+                        {{ bookingStatusLabel($booking->status ?? 'pending') }}
+
                     </span>
 
                 </div>
 
 
-                @if ($booking->status === 'confirmed')
-                    <form method="POST" action="{{ route('bookings.complete', $booking) }}">
-                        @csrf
-                        @method('PATCH')
-
-                        <button class="px-4 py-2 bg-green-600 text-white rounded-lg">
-                            Tandai Selesai
-                        </button>
-                    </form>
-                @endif
                 @if ($booking->notes)
                     <div class="mt-4">
                         <p class="text-sm text-gray-500">Catatan</p>
@@ -149,7 +141,7 @@
         </div>
 
         <!-- INFO PEMBAYARAN -->
-        <div class="bg-white rounded-xl p-6 space-y-4">
+        {{-- <div class="bg-white rounded-xl p-6 space-y-4">
             <h2 class="text-lg font-semibold">Pembayaran</h2>
 
             @php
@@ -180,12 +172,24 @@
 
                 <div class="pt-2">
                     <span class="text-gray-500 text-sm">Status Pembayaran</span><br>
+
+                    @php
+                        $map = [
+                            'pending' => 'bg-yellow-100 text-yellow-700',
+                            'dp' => 'bg-blue-100 text-blue-700',
+                            'paid' => 'bg-green-100 text-green-700',
+                        ];
+
+                        $status = $payment->status ?? 'pending';
+                    @endphp
+
                     <span
                         class="inline-flex px-3 py-1 rounded-full text-xs font-medium
-                        {{ ($payment->status ?? '') === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
-                        {{ ucfirst($payment->status ?? 'pending') }}
+        {{ $map[$status] ?? 'bg-gray-100 text-gray-600' }}">
+                        {{ paymentStatusLabel($status) }}
                     </span>
                 </div>
+
             </div>
 
             <!-- ACTION -->
@@ -196,7 +200,38 @@
                     Kirim WhatsApp
                 </button>
             </div>
+        </div> --}}
+
+        <div class="bg-white rounded-xl p-6">
+            <h3 class="font-semibold mb-4">Pembayaran</h3>
+
+            <div class="space-y-2 text-sm">
+                <p>Total: <b>Rp {{ number_format($booking->payment->total_amount, 0, ',', '.') }}</b></p>
+                <p>Dibayar: <span class="text-green-600">
+                        Rp {{ number_format($booking->payment->paid_amount, 0, ',', '.') }}
+                    </span></p>
+                <p>Sisa: <span class="text-red-600">
+                        Rp {{ number_format($booking->payment->remaining_amount, 0, ',', '.') }}
+                    </span></p>
+
+                <span
+                    class="inline-flex px-3 py-1 rounded-full text-xs font-medium
+            {{ $booking->payment->status === 'paid'
+                ? 'bg-green-100 text-green-700'
+                : ($booking->payment->status === 'dp'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-yellow-100 text-yellow-700') }}">
+                    {{ paymentStatusLabel($booking->payment->status) }}
+                </span>
+            </div>
+
+            <a href="{{ route('payments.show', $booking->payment) }}"
+                class="mt-4 inline-block w-full text-center px-4 py-2 rounded-lg bg-green-600 text-white">
+                Kelola Pembayaran
+            </a>
         </div>
+
+
 
     </div>
 @endsection

@@ -1,75 +1,127 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="bg-cream min-h-screen p-8">
-        <div class="max-w-7xl mx-auto">
+    <div class="p-6 space-y-6">
 
-            <!-- HEADER -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-semibold text-espresso">Dashboard</h1>
-                <p class="text-gray-600">Selamat datang kembali, Admin</p>
+        {{-- HEADER --}}
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <p class="text-gray-500">Selamat datang kembali, Admin</p>
+        </div>
+
+        {{-- KPI CARDS --}}
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {{-- Total Booking --}}
+            <div class="bg-white rounded-xl p-5 shadow">
+                <p class="text-sm text-gray-500">Total Booking</p>
+                <h2 class="text-3xl font-bold">{{ $totalBooking }}</h2>
             </div>
 
-            <!-- STAT CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Total Booking</p>
-                    <h2 class="text-3xl font-semibold mt-2">156</h2>
-                </div>
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Pelanggan</p>
-                    <h2 class="text-3xl font-semibold mt-2">89</h2>
-                </div>
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Revenue</p>
-                    <h2 class="text-3xl font-semibold mt-2">Rp 45M</h2>
-                </div>
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Pending</p>
-                    <h2 class="text-3xl font-semibold mt-2">12</h2>
-                </div>
+            {{-- Pelanggan --}}
+            <div class="bg-white rounded-xl p-5 shadow">
+                <p class="text-sm text-gray-500">Pelanggan</p>
+                <h2 class="text-3xl font-bold">{{ $totalCustomer }}</h2>
             </div>
 
-            <!-- MAIN GRID -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {{-- Revenue --}}
+            <div class="bg-white rounded-xl p-5 shadow">
+                <p class="text-sm text-gray-500">Revenue</p>
+                <h2 class="text-3xl font-bold">
+                    Rp {{ number_format($totalRevenue, 0, ',', '.') }}
+                </h2>
+            </div>
 
-                <!-- BOOKING TRENDS (placeholder) -->
-                <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
-                    <h3 class="text-lg font-semibold mb-4">Booking Trends</h3>
-                    <div class="h-48 bg-cream rounded-lg flex items-center justify-center text-gray-400">
-                        Grafik (placeholder)
-                    </div>
-                </div>
+            {{-- Pending --}}
+            <div class="bg-white rounded-xl p-5 shadow">
+                <p class="text-sm text-gray-500">Pending</p>
+                <h2 class="text-3xl font-bold">{{ $pendingBooking }}</h2>
+            </div>
+        </div>
+        {{-- GRID: TRENDS + BOOKING TERBARU --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <!-- BOOKING TERBARU -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <h3 class="text-lg font-semibold mb-4">Booking Terbaru</h3>
+            {{-- BOOKING TRENDS --}}
+            <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow">
+                <h3 class="font-semibold mb-4">Booking Trends</h3>
 
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center bg-cream rounded-lg p-3">
+                <canvas id="bookingChart" height="120"></canvas>
+            </div>
+
+            {{-- BOOKING TERBARU --}}
+            <div class="bg-white rounded-xl p-6 shadow">
+                <h3 class="font-semibold mb-4">Booking Terbaru</h3>
+
+                <div class="space-y-4">
+                    @forelse($latestBookings as $booking)
+                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
                             <div>
-                                <p class="font-medium">Budi Santoso</p>
-                                <p class="text-sm text-gray-500">Wedding Photo</p>
+                                <p class="font-medium">{{ $booking->customer->name }}</p>
+                                <p class="text-sm text-gray-500">
+                                    {{ $booking->service->name }}
+                                </p>
                             </div>
-                            <span class="text-xs bg-green-200 text-green-800 px-3 py-1 rounded-full">
-                                confirmed
-                            </span>
-                        </div>
 
-                        <div class="flex justify-between items-center bg-cream rounded-lg p-3">
-                            <div>
-                                <p class="font-medium">Siti Aminah</p>
-                                <p class="text-sm text-gray-500">Portrait</p>
-                            </div>
-                            <span class="text-xs bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full">
-                                pending
-                            </span>
+                            {{-- STATUS (PAKAI PARTIAL) --}}
+                            @include('bookings.partials.status', [
+                                'status' => $booking->status,
+                            ])
                         </div>
-                    </div>
+                    @empty
+                        <p class="text-sm text-gray-500 text-center">
+                            Belum ada booking
+                        </p>
+                    @endforelse
                 </div>
-
             </div>
 
         </div>
+
+
     </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const bookingData = @json($bookingTrends);
+
+        const labels = bookingData.map(item => {
+            const monthNames = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+                'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+            ];
+            return monthNames[item.month - 1];
+        });
+
+        const totals = bookingData.map(item => item.total);
+
+        const ctx = document.getElementById('bookingChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Jumlah Booking',
+                    data: totals,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
 @endsection

@@ -1,55 +1,108 @@
 @extends('layouts.app')
 
 @section('content')
-@if (session('success'))
-    <div class="mb-6 rounded-xl bg-green-50 border border-green-200 p-4 text-green-700">
-        {{ session('success') }}
-    </div>
-@endif
-
-@if ($errors->has('delete'))
-    <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">
-        {{ $errors->first('delete') }}
-    </div>
-@endif
-
-<div class="space-y-10">
-
-    {{-- JUDUL HALAMAN --}}
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold">Daftar Booking</h1>
-            <p class="text-sm text-gray-600">
-                Kelola semua booking studio foto
+            <h1 class="text-2xl font-semibold text-gray-800">Pembayaran</h1>
+            <p class="text-sm text-gray-500">
+                Kelola dan pantau status pembayaran
             </p>
         </div>
-
-        <a href="{{ route('bookings.create') }}" class="px-4 py-2 rounded-lg bg-taupe text-white text-sm">
-            + Tambah Booking
-        </a>
     </div>
 
-    {{-- CARD 1: BOOKING AKTIF --}}
-<div class="bg-white rounded-xl p-6 mb-8">
-    <h2 class="text-lg font-semibold mb-4">
-        Booking Aktif
-    </h2>
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th class="px-4 py-3 text-left">No</th>
+                    <th class="px-4 py-3 text-left">Invoice</th>
+                    <th class="px-4 py-3 text-left">Pelanggan</th>
+                    <th class="px-4 py-3 text-left">Layanan</th>
+                    <th class="px-4 py-3 text-left">Total</th>
+                    <th class="px-4 py-3 text-left">Dibayar</th>
+                    <th class="px-4 py-3 text-left">Sisa</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-center">Aksi</th>
+                </tr>
+            </thead>
 
-    @include('bookings.partials.table', [
-        'bookings' => $activeBookings
-    ])
-</div>
+            <tbody class="divide-y">
+                @forelse ($payments as $payment)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            {{ $loop->iteration }}
+                        </td>
 
-{{-- CARD 2: BOOKING SELESAI --}}
-<div class="bg-white rounded-xl p-6">
-    <h2 class="text-lg font-semibold mb-4">
-        Booking Selesai
-    </h2>
+                        <td class="px-4 py-3 font-mono text-xs">
+                            {{ $payment->invoice_number ?? '-' }}
+                        </td>
 
-    @include('bookings.partials.table', [
-        'bookings' => $completedBookings
-    ])
-</div>
+                        <td class="px-4 py-3">
+                            {{ $payment->booking->customer->name ?? '-' }}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            {{ $payment->booking->service->name ?? '-' }}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            Rp {{ number_format($payment->total_amount, 0, ',', '.') }}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            Rp {{ number_format($payment->paid_amount, 0, ',', '.') }}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            Rp {{ number_format($payment->remaining_amount, 0, ',', '.') }}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            @php
+                                $statusMap = [
+                                    'pending' => 'bg-orange-100 text-orange-700',
+                                    'dp' => 'bg-purple-100 text-purple-700',
+                                    'paid' => 'bg-green-100 text-green-700',
+                                ];
+                            @endphp
+                            <span
+                                class="inline-flex px-3 py-1 rounded-full text-xs font-medium
+                            {{ $statusMap[$payment->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                @php
+                                    $statusClass = [
+                                        'pending' => 'bg-orange-100 text-orange-700',
+                                        'dp' => 'bg-purple-100 text-purple-700',
+                                        'paid' => 'bg-green-100 text-green-700',
+                                    ];
+                                @endphp
+
+                                <span
+                                    class="inline-flex px-3 py-1 rounded-full text-xs font-medium
+    {{ $statusClass[$payment->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                    {{ paymentStatusLabel($payment->status) }}
+                                </span>
 
 
+                            </span>
+                        </td>
+
+                        <td class="px-4 py-3 text-center">
+                            <a href="{{ route('payments.show', $payment) }}"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                  bg-blue-50 text-blue-600 hover:bg-blue-100"
+                                title="Detail Pembayaran">
+                                <x-heroicon-o-eye class="w-4 h-4" />
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="9" class="px-4 py-6 text-center text-gray-500">
+                            Belum ada transaksi pembayaran
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 @endsection

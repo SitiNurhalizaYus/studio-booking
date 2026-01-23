@@ -63,7 +63,7 @@ class BookingController extends Controller
             'remaining_amount' => $booking->service->price,
             'status'           => 'pending',
         ]);
-
+        session(['back_url' => url()->previous()]);
         return redirect()
             ->route('bookings.index')
             ->with('success', 'Booking berhasil ditambahkan');
@@ -71,9 +71,14 @@ class BookingController extends Controller
     public function index()
     {
         $activeBookings = Booking::with(['customer', 'service'])
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->orderBy('booking_date', 'asc')
+            ->whereIn('status', [
+                'pending',
+                'waiting_payment',
+                'confirmed'
+            ])
+            ->orderBy('booking_date')
             ->get();
+
 
         $completedBookings = Booking::with(['customer', 'service'])
             ->whereIn('status', ['completed', 'cancelled'])
@@ -86,23 +91,31 @@ class BookingController extends Controller
         ));
     }
 
-
-    public function show(Booking $booking)
-    {
-        return view('bookings.show', compact('booking'));
-    }
-
     public function updatePayment(Request $request, Booking $booking)
     {
         $payment = $booking->payment;
 
+        $newPaid = $payment->paid_amount + $request->pay_now;
+        $remaining = $payment->total_amount - $newPaid;
+
+        if ($remaining <= 0) {
+            $paymentStatus = 'paid';
+            $bookingStatus = 'confirmed';
+        } else {
+            $paymentStatus = 'dp';
+            $bookingStatus = 'confirmed';
+        }
+
         $payment->update([
-            'paid_amount' => $request->paid_amount,
-            'remaining_amount' => $payment->total_amount - $request->paid_amount,
-            'status' => $request->paid_amount >= $payment->total_amount
-                ? 'paid'
-                : 'pending',
+            'paid_amount' => $newPaid,
+            'remaining_amount' => max(0, $remaining),
+            'status' => $paymentStatus,
         ]);
+
+        $booking->update([
+            'status' => $bookingStatus,
+        ]);
+
 
         // AUTO CONFIRMED
         if ($payment->status === 'paid') {
@@ -152,7 +165,7 @@ class BookingController extends Controller
     {
         $services = Service::all(); //  TANPA is_active
         $customers = Customer::orderBy('name')->get();
-
+        session(['back_url' => url()->previous()]);
         return view('bookings.create', compact('services', 'customers'));
     }
     public function availableSlots(Request $request)
@@ -248,11 +261,11 @@ class BookingController extends Controller
                 ->withInput();
         }
 
-        if (in_array($booking->status, ['completed', 'cancelled'])) {
-            return back()->withErrors([
-                'status' => 'Booking sudah selesai / dibatalkan dan tidak dapat diubah.'
-            ]);
-        }
+        // if (in_array($booking->status, ['completed', 'cancelled'])) {
+        //     return back()->withErrors([
+        //         'status' => 'Booking sudah selesai / dibatalkan dan tidak dapat diubah.'
+        //     ]);
+        // }
         $conflict = Booking::where('booking_date', $request->booking_date)
             ->where('id', '!=', $booking->id) // PENTING: exclude dirinya sendiri
             ->where(function ($query) use ($request) {
@@ -297,12 +310,12 @@ class BookingController extends Controller
     }
     public function destroy(Booking $booking)
     {
-        // optional: hanya boleh hapus kalau belum completed
-        if ($booking->status === 'completed') {
-            return back()->withErrors([
-                'delete' => 'Booking yang sudah selesai tidak dapat dihapus.'
-            ]);
-        }
+        // // optional: hanya boleh hapus kalau belum completed
+        // if ($booking->status === 'completed') {
+        //     return back()->withErrors([
+        //         'delete' => 'Booking yang sudah selesai tidak dapat dihapus.'
+        //     ]);
+        // }
 
         // hapus payment dulu (jika relasi belum cascade)
         if ($booking->payment) {
@@ -314,5 +327,12 @@ class BookingController extends Controller
         return redirect()
             ->route('bookings.index')
             ->with('success', 'Booking berhasil dihapus.');
+    }
+
+
+    public function show(Booking $booking)
+    {
+        session(['back_url' => url()->previous()]);
+        return view('bookings.show', compact('booking'));
     }
 }

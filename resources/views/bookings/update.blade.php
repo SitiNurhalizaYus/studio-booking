@@ -25,12 +25,13 @@
                 </p>
             </div>
 
-            <a href="{{ url()->previous() }}"
+            <a href="{{ session('back_url', route('bookings.index')) }}"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                  bg-white hover:bg-gray-100 text-sm font-medium">
+          bg-white hover:bg-gray-100 text-sm font-medium">
                 <x-heroicon-o-arrow-left class="w-4 h-4" />
                 Kembali
             </a>
+
         </div>
 
         <form method="POST" action="{{ route('bookings.update', $booking->id) }}" onsubmit="return confirmUpdate()">

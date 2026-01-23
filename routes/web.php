@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,9 +26,10 @@ Route::middleware(['auth'])->group(function () {
     /*
     | Dashboard
     */
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware(['auth'])
+        ->name('dashboard');
+
 
     /*
     | Profile
@@ -77,6 +80,31 @@ Route::middleware(['auth'])->group(function () {
     | Booking – RESOURCE (PALING BAWAH)
     */
     Route::resource('bookings', BookingController::class);
+});
+
+
+
+Route::middleware('auth')->group(function () {
+
+    // PAYMENT INDEX
+    Route::get('/payments', [PaymentController::class, 'index'])
+        ->name('payments.index');
+
+    // PAYMENT DETAIL
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])
+        ->name('payments.show');
+
+    // EDIT PEMBAYARAN (DP / LUNAS)
+    Route::get('/payments/{payment}/edit', [PaymentController::class, 'edit'])
+        ->name('payments.edit');
+
+    // UPDATE PEMBAYARAN
+    Route::put('/payments/{payment}', [PaymentController::class, 'update'])
+        ->name('payments.update');
+
+    // INVOICE
+    Route::get('/payments/{payment}/invoice', [PaymentController::class, 'invoice'])
+        ->name('payments.invoice');
 });
 
 /*

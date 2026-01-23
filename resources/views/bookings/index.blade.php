@@ -24,7 +24,7 @@
             </p>
         </div>
 
-        <a href="{{ route('bookings.create') }}" class="px-4 py-2 rounded-lg bg-taupe text-white text-sm">
+        <a href="{{ route('bookings.create') }}" class="px-4 py-2 rounded-lg bg-stone-500 text-white text-sm">
             + Tambah Booking
         </a>
     </div>

@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
-@if ($errors->any())
-    <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-700">
-        <ul class="list-disc list-inside text-sm">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
+    @if ($errors->any())
+        <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-700">
+            <ul class="list-disc list-inside text-sm">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -21,10 +21,13 @@
             </p>
         </div>
 
-        <a href="{{ route('bookings.index') }}"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border hover:bg-gray-50">
-            ← Kembali
-        </a>
+        <a href="{{ session('back_url', route('bookings.index')) }}"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+          bg-white hover:bg-gray-100 text-sm font-medium">
+                <x-heroicon-o-arrow-left class="w-4 h-4" />
+                Kembali
+            </a>
+
     </div>
 
     <form id="bookingForm" method="POST" action="{{ route('bookings.store') }}">
