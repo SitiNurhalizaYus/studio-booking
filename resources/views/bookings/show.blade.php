@@ -2,20 +2,44 @@
 
 @section('content')
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-start justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold">Detail Booking</h1>
+            <h1 class="text-2xl font-semibold text-gray-800">
+                Detail Booking
+            </h1>
             <p class="text-sm text-gray-500">
                 Booking atas nama {{ $booking->customer->name ?? '-' }}
             </p>
+
+            {{-- META TIME --}}
+            <div class="mt-2 text-[11px] text-gray-400 space-x-2">
+                <span>Dibuat: {{ $booking->created_at->format('d M Y H:i') }}</span>
+                <span>•</span>
+                <span>Diubah: {{ $booking->updated_at->format('d M Y H:i') }}</span>
+            </div>
         </div>
 
-        <a href="{{ route('bookings.index') }}"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-gray-100 text-sm font-medium">
-            <x-heroicon-o-arrow-left class="w-4 h-4" />
-            Kembali
-        </a>
+        <div class="flex items-center gap-2">
+           <a href="{{ url()->previous() }}"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                  bg-white hover:bg-gray-100 text-sm font-medium">
+                <x-heroicon-o-arrow-left class="w-4 h-4" />
+                Kembali
+            </a>
+            @if (!in_array($booking->status, ['completed', 'cancelled']))
+                <a href="{{ route('bookings.edit', $booking->id) }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                      border border-yellow-300 text-yellow-700
+                      hover:bg-yellow-50 text-xs font-medium transition">
+                    <x-heroicon-o-pencil-square class="w-4 h-4" />
+                    Edit
+                </a>
+            @endif
+
+            
+        </div>
     </div>
+
 
     <!-- CONTENT -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -23,7 +47,6 @@
         <!-- INFO BOOKING -->
         <div class="lg:col-span-2 bg-white rounded-xl p-6 space-y-4">
             <h2 class="text-lg font-semibold mb-4">Informasi Booking</h2>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="text-gray-500">Nama Pelanggan</p>
@@ -102,7 +125,7 @@
                     </span>
 
                 </div>
-               
+
 
                 @if ($booking->status === 'confirmed')
                     <form method="POST" action="{{ route('bookings.complete', $booking) }}">
@@ -114,7 +137,7 @@
                         </button>
                     </form>
                 @endif
-                 @if ($booking->notes)
+                @if ($booking->notes)
                     <div class="mt-4">
                         <p class="text-sm text-gray-500">Catatan</p>
                         <div class="mt-1 p-3 bg-gray-50 rounded-md text-sm">

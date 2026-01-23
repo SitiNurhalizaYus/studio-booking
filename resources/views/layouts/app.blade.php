@@ -55,21 +55,21 @@
                     {{ request()->routeIs('calendar.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-clock class="w-5 h-5" />
                     <span>Kalender</span>
-                </a>
+                </a> --}}
 
-                <a href="{{ route('services.index') }}"
+                {{-- <a href="{{ route('services.index') }}"
                     class="flex items-center gap-3 px-4 py-2 rounded-lg
                     {{ request()->routeIs('services.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-users class="w-5 h-5" />
                     <span>Pelanggan</span>
-                </a>
-
+                </a> --}}
+{{-- 
                 <a href="{{ route('payments.index') }}"
                     class="flex items-center gap-3 px-4 py-2 rounded-lg
                     {{ request()->routeIs('payments.*') ? 'bg-white font-semibold' : 'hover:bg-white/60' }}">
                     <x-heroicon-o-credit-card class="w-5 h-5" />
                     <span>Pembayaran</span>
-                </a> --}}
+                </a>  --}}
 
             </nav>
 

@@ -9,13 +9,13 @@
     </a>
 
 @if (!in_array($booking->status, ['completed', 'cancelled']))
-    {{-- EDIT (HANYA JIKA BELUM SELESAI) --}}
+    {{-- EDIT (HANYA JIKA BELUM SELESAI)
         <a href="{{ route('bookings.edit', $booking->id) }}"
            class="inline-flex items-center justify-center w-8 h-8 rounded-lg
                   bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
            title="Edit Booking">
             <x-heroicon-o-pencil-square class="w-4 h-4" />
-        </a>
+        </a> --}}
 
 
     {{-- DELETE (OPSIONAL, JIKA KAMU PAKAI) --}}

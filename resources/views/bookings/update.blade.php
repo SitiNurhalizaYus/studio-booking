@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+
     @if ($errors->any())
         <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-4">
             <ul class="text-sm text-red-600 space-y-1">
@@ -24,9 +25,11 @@
                 </p>
             </div>
 
-            <a href="{{ route('bookings.index') }}"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border hover:bg-gray-50">
-                ← Kembali
+            <a href="{{ url()->previous() }}"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                  bg-white hover:bg-gray-100 text-sm font-medium">
+                <x-heroicon-o-arrow-left class="w-4 h-4" />
+                Kembali
             </a>
         </div>
 
@@ -82,13 +85,26 @@
                 {{-- SLOT JAM --}}
                 <label class="block text-sm font-medium text-gray-700 mb-3">
                     Pilih Jam
+                    <div id="slot-loading" class="hidden text-sm text-gray-500 mt-2">
+                        Memuat slot waktu...
+                    </div>
+
+                    <div id="slots" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"></div>
                 </label>
 
                 <div id="slotBox" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+
                 </div>
 
                 <input type="hidden" name="start_time" id="start_time">
                 <input type="hidden" name="end_time" id="end_time">
+                <input type="hidden" id="old_name" value="{{ $booking->customer->name }}">
+                <input type="hidden" id="old_phone" value="{{ $booking->customer->phone }}">
+                <input type="hidden" id="old_service" value="{{ $booking->service_id }}">
+                <input type="hidden" id="old_date" value="{{ $booking->booking_date }}">
+                <input type="hidden" id="old_start" value="{{ substr($booking->start_time, 0, 5) }}">
+                <input type="hidden" id="old_end" value="{{ substr($booking->end_time, 0, 5) }}">
+
                 @error('booking_time')
                     <p class="mt-2 text-sm text-red-500">
                         {{ $message }}
@@ -107,11 +123,11 @@
             </div>
 
             {{-- SUBMIT --}}
-            @if (!in_array($booking->status, ['completed', 'cancelled']))
-                <button type="submit" class="w-full py-3 rounded-xl bg-green-600 text-white">
-                    Simpan Perubahan
-                </button>
-            @endif
+            <button id="saveBtn" type="submit"
+                class="w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed" disabled>
+                Simpan Perubahan
+            </button>
+
 
         </form>
     </div>
@@ -131,18 +147,25 @@
         async function loadSlots() {
             if (!dateInput.value || !serviceInput.value) return;
 
+            slotBox.innerHTML = '';
+            document.getElementById('slot-loading').classList.remove('hidden');
+
             const res = await fetch(
                 `/bookings/available-slots?booking_date=${dateInput.value}&service_id=${serviceInput.value}&booking_id=${bookingId}`
             );
+
             const slots = await res.json();
 
-            slotBox.innerHTML = '';
+            document.getElementById('slot-loading').classList.add('hidden');
 
             if (slots.length === 0) {
                 slotBox.innerHTML =
                     `<p class="col-span-full text-sm text-red-500">
-                    Tidak ada slot tersedia
-                </p>`;
+                Tidak ada slot tersedia
+            </p>`;
+                startInput.value = '';
+                endInput.value = '';
+                updateSaveButton();
                 return;
             }
 
@@ -150,16 +173,19 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = `${slot.start} - ${slot.end}`;
+                btn.className = 'slot-btn px-4 py-2 rounded-xl border text-sm';
 
-                btn.className =
-                    'slot-btn px-4 py-2 rounded-xl border text-sm hover:bg-green-50 transition';
-
-                // AUTO AKTIF SLOT LAMA
-                if (slot.start === currentStart && slot.end === currentEnd) {
+                if (
+                    slot.start === currentStart &&
+                    slot.end === currentEnd &&
+                    dateInput.value === document.getElementById('old_date').value &&
+                    serviceInput.value === document.getElementById('old_service').value
+                ) {
                     btn.classList.add('bg-green-200', 'border-green-500');
                     startInput.value = slot.start;
                     endInput.value = slot.end;
                 }
+
 
                 btn.onclick = () => {
                     document.querySelectorAll('.slot-btn')
@@ -168,20 +194,85 @@
                     btn.classList.add('bg-green-200', 'border-green-500');
                     startInput.value = slot.start;
                     endInput.value = slot.end;
+                    updateSaveButton();
                 };
 
                 slotBox.appendChild(btn);
             });
         }
 
+
         loadSlots();
-        dateInput.addEventListener('change', loadSlots);
-        serviceInput.addEventListener('change', loadSlots);
+        dateInput.addEventListener('change', () => {
+            resetSelectedTime();
+            loadSlots();
+        });
+
+        serviceInput.addEventListener('change', () => {
+            resetSelectedTime();
+            loadSlots();
+        });
+
 
         function confirmUpdate() {
+            if (!isChanged()) return false;
+
             return confirm(
-                'Simpan perubahan booking?\n\nPastikan tanggal dan jam sudah benar karena akan mempengaruhi jadwal studio.'
+                'Simpan perubahan booking?\n\nPerubahan jadwal akan mempengaruhi jadwal studio.'
             );
         }
+
+
+        const saveBtn = document.getElementById('saveBtn');
+
+        function isFormComplete() {
+            return (
+                document.querySelector('[name="name"]').value.trim() !== '' &&
+                document.querySelector('[name="phone"]').value.trim() !== '' &&
+                serviceInput.value &&
+                dateInput.value &&
+                startInput.value &&
+                endInput.value
+            );
+        }
+
+        function isChanged() {
+            return (
+                document.querySelector('[name="name"]').value !== document.getElementById('old_name').value ||
+                document.querySelector('[name="phone"]').value !== document.getElementById('old_phone').value ||
+                serviceInput.value !== document.getElementById('old_service').value ||
+                dateInput.value !== document.getElementById('old_date').value ||
+                startInput.value !== document.getElementById('old_start').value ||
+                endInput.value !== document.getElementById('old_end').value
+            );
+        }
+
+        function updateSaveButton() {
+            if (isFormComplete() && isChanged()) {
+                saveBtn.disabled = false;
+                saveBtn.className =
+                    'w-full py-3 rounded-xl bg-green-600 text-white hover:bg-green-700';
+            } else {
+                saveBtn.disabled = true;
+                saveBtn.className =
+                    'w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed';
+            }
+        }
+
+        document.querySelectorAll('input, select, textarea')
+            .forEach(el => el.addEventListener('input', updateSaveButton));
+
+        updateSaveButton();
+
+        function resetSelectedTime() {
+            startInput.value = '';
+            endInput.value = '';
+
+            document.querySelectorAll('.slot-btn')
+                .forEach(b => b.classList.remove('bg-green-200', 'border-green-500'));
+
+            updateSaveButton();
+        }
     </script>
+
 @endsection

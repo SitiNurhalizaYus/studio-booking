@@ -236,13 +236,25 @@ class BookingController extends Controller
 
     public function update(Request $request, Booking $booking)
     {
+        if (
+            ($request->service_id != $booking->service_id ||
+                $request->booking_date != $booking->booking_date)
+            && (!$request->start_time || !$request->end_time)
+        ) {
+            return back()
+                ->withErrors([
+                    'booking_time' => 'Silakan pilih ulang jam setelah mengganti layanan atau tanggal.'
+                ])
+                ->withInput();
+        }
+
         if (in_array($booking->status, ['completed', 'cancelled'])) {
             return back()->withErrors([
                 'status' => 'Booking sudah selesai / dibatalkan dan tidak dapat diubah.'
             ]);
         }
         $conflict = Booking::where('booking_date', $request->booking_date)
-            ->where('id', '!=', $booking->id) // ⬅️ PENTING: exclude dirinya sendiri
+            ->where('id', '!=', $booking->id) // PENTING: exclude dirinya sendiri
             ->where(function ($query) use ($request) {
                 $query->where('start_time', '<', $request->end_time)
                     ->where('end_time', '>', $request->start_time);
@@ -257,7 +269,6 @@ class BookingController extends Controller
                     "Jadwal bentrok pada tanggal {$request->booking_date} pukul {$request->start_time} – {$request->end_time}. Silakan pilih jam lain."
                 ]);
         }
-
 
         $request->validate([
             'name' => 'required',
@@ -280,8 +291,8 @@ class BookingController extends Controller
             'end_time' => $request->end_time,
             'notes' => $request->notes,
         ]);
-
-        return redirect()->route('bookings.index')
+        return redirect()
+            ->route('bookings.show', $booking->id)
             ->with('success', 'Booking berhasil diperbarui');
     }
     public function destroy(Booking $booking)
