@@ -7,7 +7,10 @@
             <div>
                 <h1 class="text-2xl font-semibold">Detail Pembayaran</h1>
                 <p class="text-sm text-gray-500">
-                    Booking: {{ $payment->booking->customer->name }}
+                    No Invoice: <span class="font-medium">{{ $payment->invoice_number }}</span>
+                </p>
+                <p class="text-xs text-gray-400">
+                    Dibuat: {{ $payment->created_at->format('d M Y') }}
                 </p>
             </div>
 
@@ -150,11 +153,29 @@
 
 
         {{-- ACTION --}}
-        <div class="flex gap-3">
-            <a href="{{ route('payments.invoice', $payment) }}" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">
-                Cetak Invoice
-            </a>
-        </div>
+<div class="flex gap-3">
+    <a href="{{ route('payments.invoice', $payment) }}"
+       class="inline-flex items-center gap-2
+              px-4 py-2 rounded-lg
+              bg-blue-100 hover:bg-blue-200
+              text-sm font-medium text-blue-800">
+        
+        {{-- ICON PRINT --}}
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="w-4 h-4"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
+        </svg>
+
+        Cetak Invoice
+    </a>
+</div>
+
 
     </div>
 @endsection

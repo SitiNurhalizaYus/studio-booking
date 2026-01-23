@@ -11,6 +11,24 @@ use App\Models\Service;
 
 class BookingController extends Controller
 {
+    private function generateInvoiceNumber()
+    {
+        $year = now()->year;
+
+        $lastPayment = Payment::whereYear('created_at', $year)
+            ->whereNotNull('invoice_number')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($lastPayment) {
+            $lastNumber = (int) substr($lastPayment->invoice_number, -4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return 'INV-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
     public function store(Request $request)
     {
         $request->validate([
@@ -42,7 +60,7 @@ class BookingController extends Controller
             ]);
         }
 
-        // simpan booking ke variabel
+        // simpan booking
         $booking = Booking::create([
             'customer_id'  => $customer->id,
             'service_id'   => $request->service_id,
@@ -53,16 +71,22 @@ class BookingController extends Controller
             'status'       => 'pending',
         ]);
 
+        // WAJIB load service dulu
+        $booking->load('service');
 
-
-        // auto payment (DP system ready)
+        // auto payment
         Payment::create([
             'booking_id'       => $booking->id,
+            'invoice_number'   => $this->generateInvoiceNumber(),
             'total_amount'     => $booking->service->price,
             'paid_amount'      => 0,
             'remaining_amount' => $booking->service->price,
             'status'           => 'pending',
         ]);
+
+
+
+
         session(['back_url' => url()->previous()]);
         return redirect()
             ->route('bookings.index')

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <title>Invoice Booking</title>
-
+    <title>Invoice {{ $payment->invoice_number }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,164 +12,176 @@
         }
 
         .container {
-            width: 210mm;
-            min-height: 297mm;
+            width: 800px;
             margin: auto;
-            padding: 30px;
-            box-sizing: border-box;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        .logo {
-            width: 80px;
-        }
-
-        h1 {
-            font-size: 22px;
-            margin: 0;
-        }
-
-        .info {
-            margin-bottom: 30px;
-        }
-
-        .info p {
-            margin: 4px 0;
+        .title {
+            font-size: 20px;
+            font-weight: bold;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
-        table th,
-        table td {
-            border: 1px solid #ddd;
-            padding: 10px;
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #f3f3f3;
             text-align: left;
         }
 
-        table th {
-            background-color: #f5f5f5;
-        }
-
-        .text-right {
+        .right {
             text-align: right;
         }
 
-        .total {
-            margin-top: 20px;
-            width: 40%;
-            float: right;
-        }
-
-        .total td {
-            border: none;
-            padding: 6px 0;
-        }
-
-        .footer {
-            margin-top: 60px;
-            text-align: center;
+        .status {
+            padding: 6px 10px;
+            border-radius: 4px;
             font-size: 11px;
-            color: #777;
         }
 
-        @media print {
-            body {
-                margin: 0;
-            }
+        .paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .dp {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .pending {
+            background: #ffedd5;
+            color: #9a3412;
         }
     </style>
 </head>
 
 <body onload="window.print()">
 
-<div class="container">
+    <div class="container">
 
-    {{-- HEADER --}}
-    <div class="header">
-        <div>
-            <h1>INVOICE</h1>
-            <p><strong>Studio Foto</strong></p>
-            <p>Jl. Contoh Studio No. 123</p>
-            <p>WhatsApp: 08xxxxxxxx</p>
+        {{-- HEADER --}}
+        <div class="header">
+            <div>
+                <div class="title">INVOICE PEMBAYARAN</div>
+                <div>No Invoice: <strong>{{ $payment->invoice_number }}</strong></div>
+                <div>Tanggal: {{ $payment->created_at->format('d M Y') }}</div>
+            </div>
+
+            <div>
+                <span class="status {{ $payment->status }}">
+                    {{ strtoupper($payment->status) }}
+                </span>
+            </div>
         </div>
 
-        {{-- <div>
-            <img src="{{ asset('logo.png') }}" class="logo">
-        </div> --}}
-    </div>
-
-    {{-- INFO --}}
-    <div class="info">
-        <p><strong>Invoice Untuk:</strong></p>
-        <p>{{ $booking->customer->name }}</p>
-        <p>Tanggal Booking: {{ \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') }}</p>
-        <p>Jam: {{ $booking->start_time }} - {{ $booking->end_time }}</p>
-        <p>Status Booking: {{ ucfirst($booking->status) }}</p>
-    </div>
-
-    {{-- TABLE --}}
-    <table>
-        <thead>
+        {{-- CUSTOMER --}}
+        <table>
             <tr>
-                <th>Deskripsi</th>
-                <th>Durasi</th>
-                <th class="text-right">Harga</th>
+                <th width="30%">Nama Pelanggan</th>
+                <td>{{ $payment->booking->customer->name }}</td>
             </tr>
-        </thead>
-        <tbody>
             <tr>
-                <td>{{ $booking->service->name }}</td>
-                <td>1 Jam</td>
-                <td class="text-right">
-                    Rp {{ number_format($booking->payment->total_amount ?? 0, 0, ',', '.') }}
-                </td>
+                <th>No. Telepon</th>
+                <td>{{ $payment->booking->customer->phone }}</td>
             </tr>
-        </tbody>
-    </table>
+            <tr>
+                <th>Tanggal Booking</th>
+                <td>{{ \Carbon\Carbon::parse($payment->booking->booking_date)->format('d M Y') }}</td>
+            </tr>
+            <tr>
+                <th>Jam</th>
+                <td>{{ $payment->booking->start_time }} - {{ $payment->booking->end_time }}</td>
+            </tr>
+        </table>
 
-    {{-- TOTAL --}}
-    <table class="total">
-        <tr>
-            <td>Total</td>
-            <td class="text-right">
-                Rp {{ number_format($booking->payment->total_amount ?? 0, 0, ',', '.') }}
-            </td>
-        </tr>
-        <tr>
-            <td>Dibayar</td>
-            <td class="text-right">
-                Rp {{ number_format($booking->payment->paid_amount ?? 0, 0, ',', '.') }}
-            </td>
-        </tr>
-        <tr>
-            <td><strong>Sisa</strong></td>
-            <td class="text-right">
-                <strong>
-                    Rp {{ number_format($booking->payment->remaining_amount ?? 0, 0, ',', '.') }}
-                </strong>
-            </td>
-        </tr>
-    </table>
+        {{-- DETAIL LAYANAN STUDIO --}}
+        <h3 style="margin-top:20px;">Detail Layanan Studio Foto</h3>
 
-    <div style="clear: both;"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Layanan</th>
+                    <th>Durasi</th>
+                    <th>Deskripsi</th>
+                    <th class="right">Harga</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ $payment->booking->service->name }}</td>
+                    <td>{{ $payment->booking->service->duration }} Jam</td>
+                    <td>{{ $payment->booking->service->description ?? 'Sesi foto studio profesional' }}</td>
+                    <td class="right">
+                        Rp {{ number_format($payment->total_amount, 0, ',', '.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
-    {{-- FOOTER --}}
-    <div class="footer">
-        Terima kasih telah menggunakan jasa Studio Foto kami 🙏 <br>
-        Invoice ini sah tanpa tanda tangan.
+        {{-- RINGKASAN PEMBAYARAN --}}
+        <h3 style="margin-top:20px;">Ringkasan Pembayaran</h3>
+
+        <table>
+            <tr>
+                <th>Total Tagihan</th>
+                <td class="right">Rp {{ number_format($payment->total_amount, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <th>Sudah Dibayar</th>
+                <td class="right">Rp {{ number_format($payment->paid_amount, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <th>Sisa Pembayaran</th>
+                <td class="right">Rp {{ number_format($payment->remaining_amount, 0, ',', '.') }}</td>
+            </tr>
+        </table>
+
+        {{-- RIWAYAT --}}
+        <h3 style="margin-top:20px;">Riwayat Pembayaran</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jenis</th>
+                    <th class="right">Nominal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($payment->histories as $history)
+                    <tr>
+                        <td>{{ $history->created_at->format('d M Y H:i') }}</td>
+                        <td>{{ strtoupper($history->type) }}</td>
+                        <td class="right">
+                            Rp {{ number_format($history->amount, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <p style="margin-top:30px; font-size:11px;">
+            Invoice ini sah dan diterbitkan oleh sistem Studio Foto.
+        </p>
+
     </div>
-
-</div>
 
 </body>
+
 </html>

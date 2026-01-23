@@ -1,6 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
+
+
+<div class="bg-white rounded-xl p-4 mb-6">
+    <form method="GET" action="{{ route('reports.finance') }}"
+          class="flex flex-wrap items-end gap-4">
+
+        <div>
+            <label class="text-sm text-gray-600 block mb-1">
+                Laporan Keuangan Bulanan
+            </label>
+            <input type="month"
+                   name="month"
+                   value="{{ request('month') ?? now()->format('Y-m') }}"
+                   class="border rounded-lg px-3 py-2">
+        </div>
+
+        <button type="submit"
+                class="px-4 py-2 rounded-lg bg-stone-400 text-white hover:bg-stone-500">
+            Cetak Laporan
+        </button>
+    </form>
+</div>
+<div class="bg-stone-100 rounded-xl p-4 mb-4 text-sm">
+    <strong>Info:</strong>
+    Laporan keuangan menampilkan transaksi dengan status
+    <span class="font-semibold">Lunas</span> per bulan.
+</div>
+
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-semibold text-gray-800">Pembayaran</h1>

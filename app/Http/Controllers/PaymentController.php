@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -22,7 +23,6 @@ class PaymentController extends Controller
         $payment->load(['booking.customer', 'booking.service']);
         return view('payments.show', compact('payment'));
     }
-
 
     public function update(Request $request, Payment $payment)
     {
@@ -94,4 +94,41 @@ class PaymentController extends Controller
             ->route('payments.show', $payment)
             ->with('success', 'Pembayaran berhasil dicatat.');
     }
+
+    public function invoice(Payment $payment)
+{
+    $payment->load([
+        'booking.customer',
+        'booking.service',
+        'histories'
+    ]);
+
+    return view('payments.invoice', compact('payment'));
+}
+
+
+public function financeReport(Request $request)
+{
+    $month = $request->month ?? now()->format('Y-m');
+
+    $start = Carbon::parse($month)->startOfMonth();
+    $end   = Carbon::parse($month)->endOfMonth();
+
+    $payments = Payment::with('booking.service')
+        ->where('status', 'paid')
+        ->whereBetween('created_at', [$start, $end])
+        ->orderBy('created_at')
+        ->get();
+
+    $totalRevenue = $payments->sum('paid_amount');
+
+    return view('reports.finance', compact(
+        'payments',
+        'totalRevenue',
+        'month'
+    ));
+}
+
+
+
 }

@@ -104,8 +104,12 @@ Route::middleware('auth')->group(function () {
 
     // INVOICE
     Route::get('/payments/{payment}/invoice', [PaymentController::class, 'invoice'])
-        ->name('payments.invoice');
+    ->name('payments.invoice');
 });
+
+Route::get('/reports/finance', [PaymentController::class, 'financeReport'])
+    ->name('reports.finance');
+
 
 /*
 |--------------------------------------------------------------------------
