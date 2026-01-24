@@ -3,23 +3,25 @@
 if (!function_exists('bookingStatusLabel')) {
     function bookingStatusLabel(string $status): string
     {
-        return [
+        return match ($status) {
             'pending'          => 'Menunggu Pembayaran',
             'waiting_payment'  => 'DP Dibayar',
-            'confirmed'        => 'Butuh Konfirmasi',
+            'confirmed'        => 'Terkonfirmasi',
             'completed'        => 'Selesai',
             'cancelled'        => 'Dibatalkan',
-        ][$status] ?? '-';
+            default            => ucfirst($status),
+        };
     }
 }
 
 if (!function_exists('paymentStatusLabel')) {
     function paymentStatusLabel(string $status): string
     {
-        return [
-            'pending' => 'Belum Dibayar',
+        return match ($status) {
+            'pending' => 'Menunggu Pembayaran',
             'dp'      => 'DP',
             'paid'    => 'Lunas',
-        ][$status] ?? '-';
+            default   => ucfirst($status),
+        };
     }
 }

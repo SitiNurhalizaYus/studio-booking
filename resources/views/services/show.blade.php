@@ -11,7 +11,7 @@
         </div>
 
         <div class="flex gap-2">
-            <a href="{{ route('services.edit', $service) }}"
+            <a href="{{ route('services.update', $service) }}"
                class="px-3 py-2 rounded-lg bg-yellow-100 text-yellow-700 text-sm">
                 ✏ Edit
             </a>

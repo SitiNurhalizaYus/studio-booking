@@ -6,28 +6,37 @@ use App\Models\Payment;
 
 class PaymentObserver
 {
-    public function saved(Payment $payment)
+    /**
+     * Jalan SETIAP payment di-save / update
+     */
+    public function saving(Payment $payment): void
     {
-        $booking = $payment->booking;
+        // AUTO FIX STATUS PAYMENT
+        if ($payment->remaining_amount == 0) {
+            $payment->status = 'paid';
+        } elseif ($payment->paid_amount > 0) {
+            $payment->status = 'dp';
+        } else {
+            $payment->status = 'pending';
+        }
+    }
 
-        if (! $booking) return;
-
-        switch ($payment->status) {
-            case 'paid':
-                if ($booking->status !== 'completed') {
-                    $booking->update(['status' => 'confirmed']);
-                }
-                break;
-
-            case 'cancelled':
-                $booking->update(['status' => 'cancelled']);
-                break;
-
-            default:
-                // pending / partial
-                if ($booking->status !== 'completed') {
-                    $booking->update(['status' => 'pending']);
-                }
+    /**
+     * Setelah payment disimpan
+     */
+    public function saved(Payment $payment): void
+    {
+        // AUTO SYNC BOOKING
+        if ($payment->booking) {
+            if ($payment->remaining_amount == 0) {
+                $payment->booking->updateQuietly([
+                    'status' => 'confirmed',
+                ]);
+            } elseif ($payment->paid_amount > 0) {
+                $payment->booking->updateQuietly([
+                    'status' => 'waiting_payment',
+                ]);
+            }
         }
     }
 }

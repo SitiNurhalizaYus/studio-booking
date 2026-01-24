@@ -62,7 +62,7 @@ class ServiceController extends Controller
 
     public function edit(Service $service)
     {
-        return view('services.edit', compact('service'));
+        return view('services.update', compact('service'));
     }
 
     public function update(Request $request, Service $service)

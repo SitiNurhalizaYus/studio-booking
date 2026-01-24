@@ -2,278 +2,182 @@
 
 @section('content')
 
-    @if ($errors->any())
-        <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-4">
-            <ul class="text-sm text-red-600 space-y-1">
-                @foreach ($errors->all() as $error)
-                    <li>• {{ $error }}</li>
-                @endforeach
-            </ul>
+{{-- ERROR MESSAGE --}}
+@if ($errors->any())
+    <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-700">
+        <ul class="list-disc list-inside text-sm">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+{{-- BACK --}}
+<div class="mb-6">
+    <a href="{{ session('back_url', route('bookings.index')) }}"
+       class="text-sm text-gray-500 hover:underline">
+        ← Kembali
+    </a>
+</div>
+
+<form id="bookingForm"
+      method="POST"
+      action="{{ route('bookings.update', $booking->id) }}">
+@csrf
+@method('PUT')
+
+<div class="bg-white rounded-2xl shadow-sm p-8 space-y-8">
+
+    <h1 class="text-2xl font-semibold text-gray-800">
+        Edit Booking
+    </h1>
+
+    {{-- INFORMASI PELANGGAN --}}
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Informasi Pelanggan</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text"
+                   name="name"
+                   value="{{ old('name', $booking->customer->name) }}"
+                   required
+                   class="w-full rounded-xl border-gray-200">
+
+            <input type="text"
+                   name="phone"
+                   value="{{ old('phone', $booking->customer->phone) }}"
+                   required
+                   class="w-full rounded-xl border-gray-200">
         </div>
-    @endif
+    </div>
 
-    <div class="max-w-5xl mx-auto pb-24">
+    {{-- DETAIL BOOKING --}}
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Detail Booking</h2>
 
-        {{-- HEADER --}}
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-800">
-                    Edit Booking
-                </h1>
-                <p class="text-sm text-gray-500">
-                    Perbarui data booking studio foto
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select name="service_id"
+                    id="service_id"
+                    required
+                    class="w-full rounded-xl border-gray-200">
+                @foreach ($services as $service)
+                    <option value="{{ $service->id }}"
+                        {{ old('service_id', $booking->service_id) == $service->id ? 'selected' : '' }}>
+                        {{ $service->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <input type="date"
+                   name="booking_date"
+                   id="booking_date"
+                   value="{{ old('booking_date', $booking->booking_date) }}"
+                   required
+                   class="w-full rounded-xl border-gray-200">
+        </div>
+
+        {{-- SLOT --}}
+        <div class="mt-5">
+            <label class="block text-sm font-medium mb-2">
+                Pilih Jam
+            </label>
+
+            <div id="slots" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <p class="text-sm text-gray-400 col-span-full">
+                    Pilih layanan & tanggal
                 </p>
             </div>
 
-            <a href="{{ session('back_url', route('bookings.index')) }}"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-          bg-white hover:bg-gray-100 text-sm font-medium">
-                <x-heroicon-o-arrow-left class="w-4 h-4" />
-                Kembali
-            </a>
-
+            <input type="hidden" name="start_time" id="start_time"
+                   value="{{ old('start_time', $booking->start_time) }}">
+            <input type="hidden" name="end_time" id="end_time"
+                   value="{{ old('end_time', $booking->end_time) }}">
         </div>
-
-        <form method="POST" action="{{ route('bookings.update', $booking->id) }}" onsubmit="return confirmUpdate()">
-
-            @csrf
-            @method('PUT')
-            @if (in_array($booking->status, ['completed', 'cancelled']))
-                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                    <p class="text-sm text-yellow-700">
-                        Booking ini sudah {{ $booking->status }} dan tidak dapat diedit.
-                    </p>
-                </div>
-            @endif
-
-
-            {{-- INFORMASI PELANGGAN --}}
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                    Informasi Pelanggan
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" name="name" value="{{ $booking->customer->name }}" required
-                        class="w-full rounded-xl border-gray-200 focus:ring focus:ring-green-200">
-
-                    <input type="text" name="phone" value="{{ $booking->customer->phone }}" required
-                        class="w-full rounded-xl border-gray-200 focus:ring focus:ring-green-200">
-                </div>
-            </div>
-
-            {{-- DETAIL BOOKING --}}
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                    Detail Booking
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <select name="service_id" id="service_id"
-                        class="rounded-xl border-gray-200 focus:ring focus:ring-green-200">
-                        @foreach ($services as $service)
-                            <option value="{{ $service->id }}"
-                                {{ $booking->service_id == $service->id ? 'selected' : '' }}>
-                                {{ $service->name }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <input type="date" name="booking_date" id="booking_date" value="{{ $booking->booking_date }}"
-                        min="{{ date('Y-m-d') }}" class="rounded-xl border-gray-200 focus:ring focus:ring-green-200">
-                </div>
-
-                {{-- SLOT JAM --}}
-                <label class="block text-sm font-medium text-gray-700 mb-3">
-                    Pilih Jam
-                    <div id="slot-loading" class="hidden text-sm text-gray-500 mt-2">
-                        Memuat slot waktu...
-                    </div>
-
-                    <div id="slots" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"></div>
-                </label>
-
-                <div id="slotBox" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-
-                </div>
-
-                <input type="hidden" name="start_time" id="start_time">
-                <input type="hidden" name="end_time" id="end_time">
-                <input type="hidden" id="old_name" value="{{ $booking->customer->name }}">
-                <input type="hidden" id="old_phone" value="{{ $booking->customer->phone }}">
-                <input type="hidden" id="old_service" value="{{ $booking->service_id }}">
-                <input type="hidden" id="old_date" value="{{ $booking->booking_date }}">
-                <input type="hidden" id="old_start" value="{{ substr($booking->start_time, 0, 5) }}">
-                <input type="hidden" id="old_end" value="{{ substr($booking->end_time, 0, 5) }}">
-
-                @error('booking_time')
-                    <p class="mt-2 text-sm text-red-500">
-                        {{ $message }}
-                    </p>
-                @enderror
-            </div>
-
-            {{-- CATATAN --}}
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                    Catatan
-                </h2>
-
-                <textarea name="notes" rows="3" class="w-full rounded-xl border-gray-200 focus:ring focus:ring-green-200"
-                    placeholder="Catatan tambahan (opsional)">{{ $booking->notes }}</textarea>
-            </div>
-
-            {{-- SUBMIT --}}
-            <button id="saveBtn" type="submit"
-                class="w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed" disabled>
-                Simpan Perubahan
-            </button>
-
-
-        </form>
     </div>
 
-    {{-- SCRIPT SLOT JAM --}}
-    <script>
-        const bookingId = {{ $booking->id }};
-        const dateInput = document.getElementById('booking_date');
-        const serviceInput = document.getElementById('service_id');
-        const slotBox = document.getElementById('slotBox');
-        const startInput = document.getElementById('start_time');
-        const endInput = document.getElementById('end_time');
+    {{-- CATATAN --}}
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Catatan</h2>
+        <textarea name="note"
+                  rows="3"
+                  class="w-full rounded-xl border-gray-200">{{ old('note', $booking->notes) }}</textarea>
+    </div>
 
-        const currentStart = "{{ substr($booking->start_time, 0, 5) }}";
-        const currentEnd = "{{ substr($booking->end_time, 0, 5) }}";
+    {{-- SUBMIT --}}
+    <button type="submit"
+            class="w-full py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 transition">
+        Simpan Perubahan
+    </button>
 
-        async function loadSlots() {
-            if (!dateInput.value || !serviceInput.value) return;
+</div>
+</form>
 
-            slotBox.innerHTML = '';
-            document.getElementById('slot-loading').classList.remove('hidden');
+{{-- SCRIPT SLOT --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
-            const res = await fetch(
-                `/bookings/available-slots?booking_date=${dateInput.value}&service_id=${serviceInput.value}&booking_id=${bookingId}`
-            );
+    const dateInput   = document.getElementById('booking_date');
+    const serviceInput = document.getElementById('service_id');
+    const slotsBox    = document.getElementById('slots');
+    const startInput  = document.getElementById('start_time');
+    const endInput    = document.getElementById('end_time');
 
-            const slots = await res.json();
+    async function loadSlots() {
+        const date = dateInput.value;
+        const serviceId = serviceInput.value;
 
-            document.getElementById('slot-loading').classList.add('hidden');
+        slotsBox.innerHTML = '';
 
-            if (slots.length === 0) {
-                slotBox.innerHTML =
-                    `<p class="col-span-full text-sm text-red-500">
-                Tidak ada slot tersedia
-            </p>`;
-                startInput.value = '';
-                endInput.value = '';
-                updateSaveButton();
-                return;
+        if (!date || !serviceId) {
+            slotsBox.innerHTML =
+                '<p class="text-sm text-gray-400 col-span-full">Pilih layanan & tanggal</p>';
+            return;
+        }
+
+        const res = await fetch(
+            `/bookings/available-slots?booking_date=${date}&service_id=${serviceId}&booking_id={{ $booking->id }}`,
+            { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+        );
+
+        const slots = await res.json();
+
+        if (!slots.length) {
+            slotsBox.innerHTML =
+                '<p class="text-red-500 col-span-full">Tidak ada slot tersedia</p>';
+            return;
+        }
+
+        slots.forEach(slot => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = `${slot.start} - ${slot.end}`;
+            btn.className =
+                'rounded-xl border px-4 py-2 text-sm hover:bg-green-100 transition';
+
+            // Tandai slot lama milik booking ini
+            if (slot.start === startInput.value.substring(0,5)) {
+                btn.classList.add('bg-green-500', 'text-white');
             }
 
-            slots.forEach(slot => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.textContent = `${slot.start} - ${slot.end}`;
-                btn.className = 'slot-btn px-4 py-2 rounded-xl border text-sm';
+            btn.onclick = () => {
+                document.querySelectorAll('#slots button')
+                    .forEach(b => b.classList.remove('bg-green-500', 'text-white'));
 
-                if (
-                    slot.start === currentStart &&
-                    slot.end === currentEnd &&
-                    dateInput.value === document.getElementById('old_date').value &&
-                    serviceInput.value === document.getElementById('old_service').value
-                ) {
-                    btn.classList.add('bg-green-200', 'border-green-500');
-                    startInput.value = slot.start;
-                    endInput.value = slot.end;
-                }
+                btn.classList.add('bg-green-500', 'text-white');
+                startInput.value = slot.start;
+                endInput.value = slot.end;
+            };
 
-
-                btn.onclick = () => {
-                    document.querySelectorAll('.slot-btn')
-                        .forEach(b => b.classList.remove('bg-green-200', 'border-green-500'));
-
-                    btn.classList.add('bg-green-200', 'border-green-500');
-                    startInput.value = slot.start;
-                    endInput.value = slot.end;
-                    updateSaveButton();
-                };
-
-                slotBox.appendChild(btn);
-            });
-        }
-
-
-        loadSlots();
-        dateInput.addEventListener('change', () => {
-            resetSelectedTime();
-            loadSlots();
+            slotsBox.appendChild(btn);
         });
+    }
 
-        serviceInput.addEventListener('change', () => {
-            resetSelectedTime();
-            loadSlots();
-        });
+    dateInput.addEventListener('change', loadSlots);
+    serviceInput.addEventListener('change', loadSlots);
 
-
-        function confirmUpdate() {
-            if (!isChanged()) return false;
-
-            return confirm(
-                'Simpan perubahan booking?\n\nPerubahan jadwal akan mempengaruhi jadwal studio.'
-            );
-        }
-
-
-        const saveBtn = document.getElementById('saveBtn');
-
-        function isFormComplete() {
-            return (
-                document.querySelector('[name="name"]').value.trim() !== '' &&
-                document.querySelector('[name="phone"]').value.trim() !== '' &&
-                serviceInput.value &&
-                dateInput.value &&
-                startInput.value &&
-                endInput.value
-            );
-        }
-
-        function isChanged() {
-            return (
-                document.querySelector('[name="name"]').value !== document.getElementById('old_name').value ||
-                document.querySelector('[name="phone"]').value !== document.getElementById('old_phone').value ||
-                serviceInput.value !== document.getElementById('old_service').value ||
-                dateInput.value !== document.getElementById('old_date').value ||
-                startInput.value !== document.getElementById('old_start').value ||
-                endInput.value !== document.getElementById('old_end').value
-            );
-        }
-
-        function updateSaveButton() {
-            if (isFormComplete() && isChanged()) {
-                saveBtn.disabled = false;
-                saveBtn.className =
-                    'w-full py-3 rounded-xl bg-green-600 text-white hover:bg-green-700';
-            } else {
-                saveBtn.disabled = true;
-                saveBtn.className =
-                    'w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed';
-            }
-        }
-
-        document.querySelectorAll('input, select, textarea')
-            .forEach(el => el.addEventListener('input', updateSaveButton));
-
-        updateSaveButton();
-
-        function resetSelectedTime() {
-            startInput.value = '';
-            endInput.value = '';
-
-            document.querySelectorAll('.slot-btn')
-                .forEach(b => b.classList.remove('bg-green-200', 'border-green-500'));
-
-            updateSaveButton();
-        }
-    </script>
+    // Load slot saat halaman edit dibuka
+    loadSlots();
+});
+</script>
 
 @endsection

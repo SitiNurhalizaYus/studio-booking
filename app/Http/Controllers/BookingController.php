@@ -7,46 +7,48 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Customer;
 use App\Models\Service;
-
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
-    private function generateInvoiceNumber()
-    {
-        $year = now()->year;
+    /* ================= INVOICE ================= */
 
-        $lastPayment = Payment::whereYear('created_at', $year)
-            ->whereNotNull('invoice_number')
-            ->orderBy('id', 'desc')
-            ->first();
 
-        if ($lastPayment) {
-            $lastNumber = (int) substr($lastPayment->invoice_number, -4);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
 
-        return 'INV-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-    }
+    /* ================= CREATE BOOKING ================= */
+
     public function store(Request $request)
     {
+        // VALIDASI DASAR (TANPA after:)
         $request->validate([
             'name'         => 'required',
             'phone'        => 'required',
+            'service_id'   => 'required|exists:services,id',
             'booking_date' => 'required|date',
             'start_time'   => 'required',
-            'end_time'     => 'required|after:start_time',
+            'end_time'     => 'required',
         ]);
 
-        // Simpan / ambil customer
+        // VALIDASI JAM (FIX ERROR)
+        $start = Carbon::createFromFormat('H:i', $request->start_time);
+        $end   = Carbon::createFromFormat('H:i', $request->end_time);
+
+        if ($end->lessThanOrEqualTo($start)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'end_time' => 'Jam selesai harus setelah jam mulai.'
+                ]);
+        }
+
+        // SIMPAN CUSTOMER
         $customer = Customer::create([
             'name'  => $request->name,
             'phone' => $request->phone,
             'email' => $request->email,
         ]);
 
-        //CEK DOUBLE BOOKING
+        // CEK BENTROK JADWAL
         $conflict = Booking::where('booking_date', $request->booking_date)
             ->where(function ($query) use ($request) {
                 $query->where('start_time', '<', $request->end_time)
@@ -55,15 +57,20 @@ class BookingController extends Controller
             ->exists();
 
         if ($conflict) {
-            return back()->withErrors([
-                'booking_time' => 'Jadwal bentrok. Silakan pilih waktu lain.'
-            ]);
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'booking_time' => 'Jadwal bentrok. Silakan pilih waktu lain.'
+                ]);
         }
 
-        // simpan booking
+        // SIMPAN BOOKING
+        $service = Service::findOrFail($request->service_id);
+
         $booking = Booking::create([
             'customer_id'  => $customer->id,
-            'service_id'   => $request->service_id,
+            'service_id'   => $service->id,
+            'package'      => $service->name, // 🔥 INI KUNCI
             'booking_date' => $request->booking_date,
             'start_time'   => $request->start_time,
             'end_time'     => $request->end_time,
@@ -71,13 +78,12 @@ class BookingController extends Controller
             'status'       => 'pending',
         ]);
 
-        // WAJIB load service dulu
+
         $booking->load('service');
 
-        // auto payment
+        // AUTO PAYMENT
         Payment::create([
             'booking_id'       => $booking->id,
-            'invoice_number'   => $this->generateInvoiceNumber(),
             'total_amount'     => $booking->service->price,
             'paid_amount'      => 0,
             'remaining_amount' => $booking->service->price,
@@ -86,23 +92,21 @@ class BookingController extends Controller
 
 
 
-
         session(['back_url' => url()->previous()]);
+
         return redirect()
             ->route('bookings.index')
             ->with('success', 'Booking berhasil ditambahkan');
     }
+
+    /* ================= LIST ================= */
+
     public function index()
     {
         $activeBookings = Booking::with(['customer', 'service'])
-            ->whereIn('status', [
-                'pending',
-                'waiting_payment',
-                'confirmed'
-            ])
+            ->whereIn('status', ['pending', 'waiting_payment', 'confirmed'])
             ->orderBy('booking_date')
             ->get();
-
 
         $completedBookings = Booking::with(['customer', 'service'])
             ->whereIn('status', ['completed', 'cancelled'])
@@ -115,44 +119,32 @@ class BookingController extends Controller
         ));
     }
 
+    /* ================= PAYMENT ================= */
+
     public function updatePayment(Request $request, Booking $booking)
     {
         $payment = $booking->payment;
 
-        $newPaid = $payment->paid_amount + $request->pay_now;
+        $newPaid   = $payment->paid_amount + $request->pay_now;
         $remaining = $payment->total_amount - $newPaid;
 
-        if ($remaining <= 0) {
-            $paymentStatus = 'paid';
-            $bookingStatus = 'confirmed';
-        } else {
-            $paymentStatus = 'dp';
-            $bookingStatus = 'confirmed';
-        }
-
         $payment->update([
-            'paid_amount' => $newPaid,
+            'paid_amount'      => $newPaid,
             'remaining_amount' => max(0, $remaining),
-            'status' => $paymentStatus,
+            'status'           => $remaining <= 0 ? 'paid' : 'dp',
         ]);
 
         $booking->update([
-            'status' => $bookingStatus,
+            'status' => 'confirmed',
         ]);
-
-
-        // AUTO CONFIRMED
-        if ($payment->status === 'paid') {
-            $booking->update([
-                'status' => 'confirmed'
-            ]);
-        }
 
         return back()->with('success', 'Pembayaran diperbarui');
     }
+
+    /* ================= UPDATE STATUS ================= */
+
     public function updateStatus(Request $request, Booking $booking)
     {
-        // hanya boleh jika sudah confirmed
         if ($booking->status !== 'confirmed') {
             abort(403);
         }
@@ -167,6 +159,7 @@ class BookingController extends Controller
 
         return back()->with('success', 'Status booking diperbarui');
     }
+
     public function complete(Booking $booking)
     {
         if ($booking->status !== 'confirmed') {
@@ -179,6 +172,9 @@ class BookingController extends Controller
 
         return back()->with('success', 'Booking ditandai selesai');
     }
+
+    /* ================= VIEW ================= */
+
     public function invoice(Booking $booking)
     {
         $booking->load(['customer', 'service', 'payment']);
@@ -187,21 +183,32 @@ class BookingController extends Controller
 
     public function create()
     {
-        $services = Service::all(); //  TANPA is_active
+        $services = Service::all();
         $customers = Customer::orderBy('name')->get();
+
         session(['back_url' => url()->previous()]);
+
         return view('bookings.create', compact('services', 'customers'));
     }
+
+    /* ================= SLOT ================= */
+
     public function availableSlots(Request $request)
     {
         $request->validate([
             'booking_date' => 'required|date',
-            'service_id' => 'required',
-            'booking_id' => 'nullable'
+            'service_id'   => 'required|exists:services,id',
+            'booking_id'   => 'nullable'
         ]);
 
         $service = Service::findOrFail($request->service_id);
-        $duration = $service->duration;
+
+        // 🔴 GUARD WAJIB
+        if (!$service->duration || $service->duration <= 0) {
+            return response()->json([]);
+        }
+
+        $duration = (int) $service->duration; // MENIT
 
         $studioHours = [
             '09:00',
@@ -222,14 +229,15 @@ class BookingController extends Controller
         $available = [];
 
         foreach ($studioHours as $start) {
-            $startTime = strtotime($start);
-            $endTime = strtotime("+{$duration} hour", $startTime);
+
+            $startTime = \Carbon\Carbon::createFromFormat('H:i', $start);
+            $endTime   = (clone $startTime)->addMinutes($duration);
 
             $conflict = false;
 
             foreach ($bookings as $booking) {
-                $bookedStart = strtotime($booking->start_time);
-                $bookedEnd   = strtotime($booking->end_time);
+                $bookedStart = Carbon::createFromFormat('H:i:s', $booking->start_time);
+                $bookedEnd   = Carbon::createFromFormat('H:i:s', $booking->end_time);
 
                 if ($startTime < $bookedEnd && $endTime > $bookedStart) {
                     $conflict = true;
@@ -237,10 +245,11 @@ class BookingController extends Controller
                 }
             }
 
+
             if (!$conflict) {
                 $available[] = [
-                    'start' => date('H:i', $startTime),
-                    'end'   => date('H:i', $endTime),
+                    'start' => $startTime->format('H:i'),
+                    'end'   => $endTime->format('H:i'),
                 ];
             }
         }
@@ -248,100 +257,52 @@ class BookingController extends Controller
         return response()->json($available);
     }
 
-    public function fullDates(Request $request)
-    {
-        $service = Service::findOrFail($request->service_id);
-        $duration = $service->duration;
 
-        $dates = Booking::select('booking_date')
-            ->groupBy('booking_date')
-            ->get()
-            ->filter(function ($row) use ($duration) {
-                $totalBooked = Booking::where('booking_date', $row->booking_date)->count();
-                return $totalBooked >= 7; // 7 slot studio per hari
-            })
-            ->pluck('booking_date');
-
-        return response()->json($dates);
-    }
-    public function edit(Booking $booking)
-    {
-        $services = Service::all();
-
-        return view('bookings.update', compact('booking', 'services'));
-    }
+    /* ================= UPDATE BOOKING ================= */
 
     public function update(Request $request, Booking $booking)
     {
-        if (
-            ($request->service_id != $booking->service_id ||
-                $request->booking_date != $booking->booking_date)
-            && (!$request->start_time || !$request->end_time)
-        ) {
-            return back()
-                ->withErrors([
-                    'booking_time' => 'Silakan pilih ulang jam setelah mengganti layanan atau tanggal.'
-                ])
-                ->withInput();
-        }
+        $request->validate([
+            'service_id'   => 'required|exists:services,id',
+            'booking_date' => 'required|date',
+            'start_time'   => 'required',
+            'end_time'     => 'required',
+        ]);
 
-        // if (in_array($booking->status, ['completed', 'cancelled'])) {
-        //     return back()->withErrors([
-        //         'status' => 'Booking sudah selesai / dibatalkan dan tidak dapat diubah.'
-        //     ]);
-        // }
+        $start = Carbon::parse($request->start_time)->format('H:i:s');
+        $end   = Carbon::parse($request->end_time)->format('H:i:s');
+
         $conflict = Booking::where('booking_date', $request->booking_date)
-            ->where('id', '!=', $booking->id) // PENTING: exclude dirinya sendiri
-            ->where(function ($query) use ($request) {
-                $query->where('start_time', '<', $request->end_time)
-                    ->where('end_time', '>', $request->start_time);
+            ->where('id', '!=', $booking->id)
+            ->where(function ($q) use ($start, $end) {
+                $q->where('start_time', '<', $end)
+                    ->where('end_time', '>', $start);
             })
             ->exists();
 
         if ($conflict) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'booking_time' =>
-                    "Jadwal bentrok pada tanggal {$request->booking_date} pukul {$request->start_time} – {$request->end_time}. Silakan pilih jam lain."
-                ]);
+            return back()->withErrors([
+                'time' => 'Jadwal bentrok. Silakan pilih waktu lain.'
+            ]);
         }
 
-        $request->validate([
-            'name' => 'required',
-            'phone' => 'required',
-            'service_id' => 'required',
-            'booking_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
-        ]);
-
-        $booking->customer->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-        ]);
-
         $booking->update([
-            'service_id' => $request->service_id,
+            'service_id'   => $request->service_id,
             'booking_date' => $request->booking_date,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'notes' => $request->notes,
+            'start_time'   => $start,
+            'end_time'     => $end,
+            'notes'        => $request->notes,
         ]);
+
         return redirect()
             ->route('bookings.show', $booking->id)
-            ->with('success', 'Booking berhasil diperbarui');
+            ->with('success', 'Booking berhasil diperbarui.');
     }
+
+    /* ================= DELETE ================= */
+
     public function destroy(Booking $booking)
     {
-        // // optional: hanya boleh hapus kalau belum completed
-        // if ($booking->status === 'completed') {
-        //     return back()->withErrors([
-        //         'delete' => 'Booking yang sudah selesai tidak dapat dihapus.'
-        //     ]);
-        // }
-
-        // hapus payment dulu (jika relasi belum cascade)
         if ($booking->payment) {
             $booking->payment->delete();
         }
@@ -353,10 +314,23 @@ class BookingController extends Controller
             ->with('success', 'Booking berhasil dihapus.');
     }
 
-
     public function show(Booking $booking)
     {
-        session(['back_url' => url()->previous()]);
+        $booking->load([
+            'customer',
+            'service',
+            'payment.histories'
+        ]);
+
         return view('bookings.show', compact('booking'));
+    }
+
+
+    public function edit(Booking $booking)
+    {
+        $services = Service::all();
+        session(['back_url' => url()->previous()]);
+
+        return view('bookings.update', compact('booking', 'services'));
     }
 }

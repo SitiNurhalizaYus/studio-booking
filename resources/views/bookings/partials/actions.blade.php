@@ -12,7 +12,7 @@
     @endif
     --}}
     {{-- EDIT (HANYA JIKA BELUM SELESAI)
-        <a href="{{ route('bookings.edit', $booking->id) }}"
+        <a href="{{ route('bookings.update', $booking->id) }}"
            class="inline-flex items-center justify-center w-8 h-8 rounded-lg
                   bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
            title="Edit Booking">

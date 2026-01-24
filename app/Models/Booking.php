@@ -7,15 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $fillable = [
-        'customer_id',
-        'service_id',
-        'booking_date',
-        'start_time',
-        'end_time',
-        'package',
-        'status',
-        'notes',
-    ];
+    'customer_id',
+    'service_id',
+    'package',
+    'booking_date',
+    'start_time',
+    'end_time',
+    'notes',
+    'status',
+];
+
 
     public function customer()
     {
@@ -27,10 +28,12 @@ class Booking extends Model
         return $this->belongsTo(Service::class);
     }
 
+
     public function payment()
-    {
-        return $this->hasOne(Payment::class);
-    }
+{
+    return $this->hasOne(Payment::class);
+}
+
 
     
 }

@@ -90,9 +90,9 @@
     {{-- HEADER --}}
     <div class="header">
     <div style="display:flex; gap:15px; align-items:center;">
-        <img src="{{ public_path('images/logo-studio.png') }}"
-             alt="Studio Foto"
-             style="width:90px;">
+  <img src="{{ asset('images/logo-studio.png') }}" alt="Logo Studio" style="width:90px;">
+
+             
 
         <div>
             <div class="title">STUDIO FOTO QUEEN</div>
