@@ -5,6 +5,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ServiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -109,6 +110,21 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/reports/finance', [PaymentController::class, 'financeReport'])
     ->name('reports.finance');
+
+
+Route::get('/bookings/{booking}/whatsapp', 
+    [BookingController::class, 'sendWhatsapp']
+)->name('bookings.whatsapp');
+
+Route::get(
+    '/bookings/{booking}/reminder',
+    [BookingController::class, 'sendReminder']
+)->name('bookings.reminder');
+
+
+
+Route::resource('services', ServiceController::class);
+
 
 
 /*

@@ -16,7 +16,7 @@
 
 <div class="header">
     <div style="display:flex; gap:12px; align-items:center;">
-        <img src="{{ public_path('images/logo-studio.png') }}" width="80">
+       <img src="{{ asset('images/logo-studio.png') }}" width="80">
         <div>
             <strong>STUDIO FOTO QUEEN</strong><br>
             Laporan Keuangan Bulanan
